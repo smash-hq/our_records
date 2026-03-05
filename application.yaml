@@ -1,0 +1,22 @@
+server:
+  port: "8088"
+  mode: "debug"
+
+database:
+  host: "pgsql-server"
+  port: "30032"
+  user: "postgres"
+  password: "beL3WjYr4wu9R3Jn"
+  dbname: "our_records"
+  sslmode: "disable"
+
+upload:
+  path: "./uploads"
+  max_size: 52428800
+
+minio:
+  endpoint: "oss.yssdopen.com"
+  access_key_id: "minioadmin"
+  secret_access_key: "minioadmin"
+  bucket: "our-records"
+  use_ssl: true
