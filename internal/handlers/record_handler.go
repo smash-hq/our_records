@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"strconv"
 	"strings"
@@ -69,21 +70,32 @@ func GetRecords(c *gin.Context) {
 	recordsWithURLs := make([]gin.H, 0, len(records))
 	for _, record := range records {
 		recordData := gin.H{
-			"id":         record.ID,
-			"type":       record.Type,
-			"visibility": record.Visibility,
-			"group_id":   record.GroupID,
-			"user_id":    record.UserID,
-			"username":   "",
-			"title":      record.Title,
-			"content":    record.Content,
-			"tags":       record.Tags,
-			"created_at": record.CreatedAt,
-			"updated_at": record.UpdatedAt,
+			"id":              record.ID,
+			"type":            record.Type,
+			"visibility":      record.Visibility,
+			"group_id":        record.GroupID,
+			"user_id":         record.UserID,
+			"username":        "",
+			"user_avatar":     "",
+			"title":           record.Title,
+			"content":         record.Content,
+			"tags":            record.Tags,
+			"created_at":      record.CreatedAt,
+			"updated_at":      record.UpdatedAt,
+			"comment_count":   0,
+			"recent_comments": []gin.H{},
 		}
 
 		if record.User != nil {
 			recordData["username"] = record.User.Username
+			// 生成用户头像签名 URL
+			if record.User.Avatar != "" {
+				ctx := context.Background()
+				signedURL, err := minioClient.GetPresignedURL(ctx, record.User.Avatar, 7*24*time.Hour)
+				if err == nil {
+					recordData["user_avatar"] = signedURL
+				}
+			}
 		}
 
 		if record.MediaPath != "" && (record.Type == "image" || record.Type == "audio" || record.Type == "video") {
@@ -102,9 +114,19 @@ func GetRecords(c *gin.Context) {
 			recordData["media_path"] = ""
 		}
 
+		// 获取评论总数
+		var totalComments int64
+		models.DB.Model(&models.Comment{}).
+			Where("record_id = ?", record.ID).
+			Count(&totalComments)
+
+		recordData["comment_count"] = totalComments
+		log.Printf("[记录列表] ID=%d, 评论数=%d", record.ID, totalComments)
+
 		recordsWithURLs = append(recordsWithURLs, recordData)
 	}
 
+	log.Printf("[记录列表] 返回 %d 条记录", len(recordsWithURLs))
 	c.JSON(http.StatusOK, recordsWithURLs)
 }
 

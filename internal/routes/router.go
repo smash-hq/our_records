@@ -51,6 +51,14 @@ func SetupRouter() *gin.Engine {
 		auth.POST("/groups/:id/leave", handlers.LeaveGroup)
 		auth.GET("/users/search", handlers.SearchUsers)
 
+		// 评论相关路由
+		auth.GET("/records/:id/comments", handlers.GetComments)
+		auth.POST("/records/:id/comments", handlers.CreateComment)
+		auth.GET("/records/:id/comments/:comment_id/replies", handlers.GetCommentReplies)
+		auth.DELETE("/comments/:comment_id", handlers.DeleteComment)
+		auth.POST("/comments/:comment_id/like", handlers.LikeComment)
+		auth.GET("/comments/my", handlers.GetMyComments)
+
 		// 记录相关路由
 		records := auth.Group("/records")
 		{

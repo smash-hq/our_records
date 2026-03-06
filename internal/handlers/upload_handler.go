@@ -16,6 +16,14 @@ import (
 
 // UploadFile 上传文件到 MinIO，只存储相对路径
 func UploadFile(c *gin.Context) {
+	// 获取用户 ID
+	userIDInterface, exists := c.Get("user_id")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "未登录"})
+		return
+	}
+	userID := userIDInterface.(uint)
+
 	file, err := c.FormFile("file")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "未找到上传文件"})
@@ -119,6 +127,7 @@ func UploadFile(c *gin.Context) {
 			Tags:       tags,
 			Visibility: models.Visibility(visibility),
 			GroupID:    groupID,
+			UserID:     &userID,
 		}
 		// 默认为公开
 		if record.Visibility == "" {

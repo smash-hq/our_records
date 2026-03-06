@@ -101,9 +101,19 @@ func Login(c *gin.Context) {
 		return
 	}
 
+	// 转换为响应对象并生成头像签名 URL
+	userResp := user.ToResponse()
+	if user.Avatar != "" {
+		ctx := context.Background()
+		signedURL, err := minioClient.GetPresignedURL(ctx, user.Avatar, 7*24*time.Hour)
+		if err == nil {
+			userResp.Avatar = signedURL
+		}
+	}
+
 	c.JSON(http.StatusOK, LoginResponse{
 		Token: token,
-		User:  user.ToResponse(),
+		User:  userResp,
 	})
 }
 

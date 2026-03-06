@@ -64,6 +64,35 @@
 </el-button>
 </div>
 </el-card>
+
+<!-- 我的评论 -->
+<el-card class="profile-card comments-card">
+<div class="card-header">
+<h3><el-icon><ChatDotRound/></el-icon>我的评论</h3>
+</div>
+<div class="my-comments" v-loading="commentsLoading">
+<div v-for="comment in myComments" :key="comment.id" class="comment-item">
+<div class="comment-content">
+<p class="comment-text">{{comment.content}}</p>
+<div class="comment-meta">
+<span class="comment-record">发布于《{{comment.record_title}}》</span>
+<span class="comment-date">{{formatTime(comment.created_at)}}</span>
+<span class="comment-likes"><el-icon><Star/></el-icon>{{comment.like_count}}</span>
+</div>
+</div>
+</div>
+<el-empty v-if="!commentsLoading && myComments.length===0" description="还没有评论"/>
+<div class="pagination" v-if="myComments.length > 0">
+<el-pagination
+  layout="prev, pager, next"
+  :total="commentsTotal"
+  :page-size="commentsPageSize"
+  :current-page="commentsPage"
+  @current-change="loadMyComments"
+/>
+</div>
+</div>
+</el-card>
 </div>
 
 <!-- 修改密码对话框 -->
@@ -98,10 +127,11 @@ show-password
 
 <script setup>
 import { ref, reactive, onMounted } from "vue"
-import { User, Star, Message, Clock, Lock, Camera } from "@element-plus/icons-vue"
+import { User, Star, Message, Clock, Lock, Camera, ChatDotRound } from "@element-plus/icons-vue"
 import { useRouter } from "vue-router"
 import { ElMessage } from "element-plus"
 import { getCurrentUser, changePassword, uploadAvatar } from "@/api/auth"
+import { getMyComments } from "@/api/comment"
 
 const router = useRouter()
 const user = ref(null)
@@ -125,23 +155,58 @@ const passwordRules = {
   ]
 }
 
+// 我的评论相关
+const myComments = ref([])
+const commentsLoading = ref(false)
+const commentsTotal = ref(0)
+const commentsPage = ref(1)
+const commentsPageSize = ref(10)
+
 const formatDate = (date) => {
   if (!date) return "-"
   return new Date(date).toLocaleString("zh-CN")
+}
+
+const formatTime = (date) => {
+  if (!date) return ""
+  const d = new Date(date)
+  const now = new Date()
+  const diff = now - d
+  const minutes = Math.floor(diff / (1000 * 60))
+  const hours = Math.floor(diff / (1000 * 60 * 60))
+  const days = Math.floor(diff / (1000 * 60 * 60 * 24))
+  
+  if (minutes < 1) return "刚刚"
+  if (minutes < 60) return `${minutes}分钟前`
+  if (hours < 24) return `${hours}小时前`
+  if (days < 30) return `${days}天前`
+  return d.toLocaleDateString("zh-CN")
 }
 
 const loadUser = async () => {
   try {
     const res = await getCurrentUser()
     user.value = res
-    // 更新本地存储的用户信息
     localStorage.setItem("user", JSON.stringify(res))
   } catch (error) {
     console.error("加载用户信息失败", error)
   }
 }
 
-// 上传前验证
+const loadMyComments = async (page = 1) => {
+  commentsLoading.value = true
+  try {
+    const res = await getMyComments({ page, page_size: commentsPageSize.value })
+    myComments.value = res.comments || []
+    commentsTotal.value = res.total || 0
+    commentsPage.value = page
+  } catch (error) {
+    console.error(error)
+  } finally {
+    commentsLoading.value = false
+  }
+}
+
 const beforeAvatarUpload = (file) => {
   const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
   if (!validTypes.includes(file.type)) {
@@ -155,20 +220,15 @@ const beforeAvatarUpload = (file) => {
   return true
 }
 
-// 处理头像上传
 const handleAvatarUpload = async (options) => {
   uploadingAvatar.value = true
   try {
     const formData = new FormData()
     formData.append('file', options.file)
     const res = await uploadAvatar(formData)
-    console.log('头像上传响应:', res)
     ElMessage.success('头像上传成功')
-    if (res.user) {
-      user.value = res.user
-      localStorage.setItem("user", JSON.stringify(res.user))
-      console.log('更新后用户头像:', user.value.avatar)
-    }
+    user.value = res.user
+    localStorage.setItem("user", JSON.stringify(res.user))
   } catch (error) {
     console.error('头像上传失败:', error)
     ElMessage.error('头像上传失败：' + (error.message || '未知错误'))
@@ -179,10 +239,10 @@ const handleAvatarUpload = async (options) => {
 
 const handleChangePassword = async () => {
   if (!passwordFormRef.value) return
-  
+
   await passwordFormRef.value.validate(async (valid) => {
     if (!valid) return
-    
+
     changingPassword.value = true
     try {
       await changePassword({
@@ -193,7 +253,6 @@ const handleChangePassword = async () => {
       showPasswordDialog.value = false
       passwordForm.old_password = ""
       passwordForm.new_password = ""
-      // 清除登录状态，跳转到登录页
       localStorage.removeItem("token")
       localStorage.removeItem("user")
       setTimeout(() => {
@@ -209,6 +268,7 @@ const handleChangePassword = async () => {
 
 onMounted(() => {
   loadUser()
+  loadMyComments()
 })
 </script>
 
@@ -219,11 +279,12 @@ onMounted(() => {
   background:#f5f7fa;
 }
 .profile-container{
-  max-width:600px;
+  max-width:800px;
   margin:0 auto;
 }
 .profile-card{
   border-radius:16px;
+  margin-bottom:20px;
 }
 .profile-header{
   text-align:center;
@@ -303,6 +364,66 @@ onMounted(() => {
 .action-btn .el-icon{
   margin-right:6px;
   font-size:18px;
+}
+.card-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:16px 20px;
+  border-bottom:1px solid #e4e7ed;
+}
+.card-header h3{
+  font-size:16px;
+  color:#303133;
+  margin:0;
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+.my-comments{
+  padding:0;
+}
+.comment-item{
+  padding:16px 20px;
+  border-bottom:1px solid #f5f5f5;
+  transition:background 0.2s;
+}
+.comment-item:hover{
+  background:#f8f9ff;
+}
+.comment-item:last-child{
+  border-bottom:none;
+}
+.comment-text{
+  font-size:14px;
+  color:#303133;
+  line-height:1.6;
+  margin-bottom:10px;
+  white-space:pre-wrap;
+}
+.comment-meta{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  font-size:12px;
+  color:#909399;
+  flex-wrap:wrap;
+}
+.comment-record{
+  color:#667eea;
+}
+.comment-likes{
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+.comment-likes .el-icon{
+  font-size:14px;
+}
+.pagination{
+  padding:16px 20px;
+  display:flex;
+  justify-content:center;
 }
 .dialog-footer{
   display:flex;

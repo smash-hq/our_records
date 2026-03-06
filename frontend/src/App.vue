@@ -14,7 +14,7 @@
 <div class="user-info">
 <el-dropdown trigger="click" @command="handleUserCommand">
 <div class="user-avatar">
-<el-avatar :size="36" :src="user?.avatar">
+<el-avatar :size="36" :src="user?.avatar" :key="user?.id || 'guest'">
 <template #default>{{ user?.nickname?.charAt(0) || user?.username?.charAt(0) || 'U' }}</template>
 </el-avatar>
 <span class="user-name">{{ user?.nickname || user?.username || '用户' }}</span>
@@ -86,9 +86,12 @@ const loadUser=()=>{
 }
 
 // 监听路由变化，在每次路由变化后重新加载用户信息
-watch(()=>route.fullPath,()=>{
-  loadUser()
-})
+watch(()=>route.path, (newPath) => {
+  // 在非登录页面时加载用户信息
+  if (newPath !== '/login') {
+    loadUser()
+  }
+}, { immediate: true })
 
 const handleUserCommand=(command)=>{
   if(command==="logout"){
@@ -111,7 +114,6 @@ const checkMobile=()=>{isMobile.value=window.innerWidth<=768}
 checkMobile()
 onMounted(()=>{
   window.addEventListener("resize",checkMobile)
-  loadUser()
   // 监听 storage 变化，实现多标签页同步登出
   window.addEventListener("storage",(e)=>{
     if(e.key==="token"&&!e.newValue){
