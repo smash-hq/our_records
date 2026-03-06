@@ -45,8 +45,8 @@
 </div>
 <h3 class="record-title">{{record.title||'无标题'}}</h3>
 <p class="record-excerpt">{{getExcerpt(record.content)}}</p>
-<div class="record-tags" v-if="record.tags">
-<el-tag v-for="tag in getTags(record.tags)" :key="tag" size="small" class="tag-item">#{{tag}}</el-tag>
+<div class="record-tags-placeholder">
+<el-tag v-if="record.tags" size="small" class="tag-item">#{{getTags(record.tags)[0]}}</el-tag>
 </div>
 </div>
 <div class="record-actions" @click.stop>
@@ -141,7 +141,7 @@ const confirmDelete=async(id)=>{
 .search-btn:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(102,126,234,0.4)}
 .search-btn .el-icon{margin-right:6px;font-size:16px}
 .records-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:20px}
-.record-item{border-radius:16px;transition:all 0.3s;overflow:hidden;display:flex;flex-direction:column;border:none;cursor:pointer}
+.record-item{border-radius:16px;transition:all 0.3s;overflow:hidden;display:flex;flex-direction:column;border:none;cursor:pointer;height:100%}
 .record-item:hover{transform:translateY(-6px);box-shadow:0 16px 40px rgba(0,0,0,0.12)}
 .record-cover{height:180px;overflow:hidden;background:linear-gradient(135deg,#f5f7fa 0%,#e4e8ec 100%);position:relative;flex-shrink:0}
 .record-cover-text{display:flex;align-items:center;justify-content:center}
@@ -150,14 +150,14 @@ const confirmDelete=async(id)=>{
 .record-item:hover .cover-image{transform:scale(1.08)}
 .image-count{position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,0.7);color:#fff;border-radius:16px;padding:4px 12px;font-size:12px;display:flex;align-items:center;gap:4px;box-shadow:0 2px 8px rgba(0,0,0,0.2)}
 .image-count .el-icon{font-size:14px}
-.record-body{padding:18px;flex:1}
-.record-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
-.record-date{font-size:12px;color:#999}
+.record-body{padding:18px;flex:1;display:flex;flex-direction:column}
+.record-meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;flex-shrink:0}
+.record-date{font-size:12px;color:#999;white-space:nowrap}
 .record-title{font-size:16px;color:#2c3e50;margin-bottom:10px;line-height:1.5;height:48px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-weight:500}
-.record-excerpt{font-size:13px;color:#7f8c8d;line-height:1.7;margin-bottom:14px;height:44px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
-.record-tags{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;min-height:20px}
-.tag-item{color:#667eea;border-color:#e0e6ed;background:#f8f9ff;font-size:12px;padding:3px 8px;border-radius:6px}
-.record-actions{display:flex;justify-content:flex-end;gap:8px;padding:10px 16px;background:transparent;flex-shrink:0;border-top:1px solid #f5f5f5;margin-top:8px}
+.record-excerpt{font-size:13px;color:#7f8c8d;line-height:1.7;margin-bottom:12px;height:44px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;flex-shrink:0}
+.record-tags-placeholder{height:22px;margin-top:auto;display:flex;align-items:center;flex-shrink:0}
+.tag-item{color:#667eea;border-color:#e0e6ed;background:#f8f9ff;font-size:12px;padding:2px 8px;border-radius:4px;font-weight:500}
+.record-actions{display:flex;justify-content:flex-end;gap:8px;padding:10px 16px;background:transparent;flex-shrink:0;border-top:1px solid #f5f5f5}
 .btn-view{min-width:70px;padding:6px 12px;border-radius:6px;font-size:13px;font-weight:500;transition:all 0.2s;color:#409EFF;background:rgba(64,158,255,0.1);border:1px solid rgba(64,158,255,0.3)}
 .btn-view:hover{background:rgba(64,158,255,0.2);border-color:rgba(64,158,255,0.5);color:#66b1ff}
 .btn-delete{min-width:70px;padding:6px 12px;border-radius:6px;font-size:13px;font-weight:500;transition:all 0.2s;color:#F56C6C;background:rgba(245,108,108,0.1);border:1px solid rgba(245,108,108,0.3)}

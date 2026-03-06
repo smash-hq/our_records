@@ -17,13 +17,13 @@ const router = createRouter({
   routes
 })
 
-// 路由守卫 - 验证登录
+// 路由守卫 - JWT 认证
 router.beforeEach((to, from, next) => {
-  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true'
-  
-  if (to.meta.requiresAuth && !isLoggedIn) {
+  const token = localStorage.getItem('token')
+
+  if (to.meta.requiresAuth && !token) {
     next('/login')
-  } else if (to.path === '/login' && isLoggedIn) {
+  } else if (to.path === '/login' && token) {
     next('/timeline')
   } else {
     next()

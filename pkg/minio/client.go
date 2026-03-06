@@ -67,13 +67,32 @@ func UploadFile(ctx context.Context, objectName string, data []byte, contentType
 func GetPresignedURL(ctx context.Context, objectName string, expiry time.Duration) (string, error) {
 	cfg := config.AppConfig.Minio
 
+	// 限制最大过期时间为 7 天
+	if expiry > 7*24*time.Hour {
+		expiry = 7 * 24 * time.Hour
+	}
+
 	// 生成 GET 请求的签名 URL
 	url, err := Client.PresignedGetObject(ctx, cfg.Bucket, objectName, expiry, nil)
 	if err != nil {
-		return "", err
+		log.Printf("生成签名 URL 失败：bucket=%s, object=%s, error=%v", cfg.Bucket, objectName, err)
+		return "", fmt.Errorf("生成签名 URL 失败：%w", err)
 	}
 
 	return url.String(), nil
+}
+
+// GetObjectURL 获取对象访问 URL（不签名，适用于公开读取或需要签名的情况）
+func GetObjectURL(objectName string) string {
+	cfg := config.AppConfig.Minio
+	protocol := "https"
+	if !cfg.UseSSL {
+		protocol = "http"
+	}
+	// 构建完整 URL：https://oss.yssdopen.com/our-records/avatars/avatar_xxx.jpg
+	url := fmt.Sprintf("%s://%s/%s/%s", protocol, cfg.Endpoint, cfg.Bucket, objectName)
+	log.Printf("构建头像 URL: %s", url)
+	return url
 }
 
 // DeleteFile 删除文件

@@ -83,10 +83,12 @@ func UploadFile(c *gin.Context) {
 	title := c.PostForm("title")
 	content := c.PostForm("content")
 	tags := c.PostForm("tags")
+	visibility := c.PostForm("visibility")
+	groupIDStr := c.PostForm("group_id")
 
 	// 尝试查找同标题的记录
 	models.DB.Where("title = ? AND type = ?", title, recordType).Order("id DESC").First(&record)
-	
+
 	mediaPath := objectPath
 	if record.ID > 0 && record.MediaPath != "" {
 		// 追加到现有路径
@@ -100,12 +102,27 @@ func UploadFile(c *gin.Context) {
 		record.Tags = tags
 		models.DB.Save(&record)
 	} else {
+		// 解析 group_id
+		var groupID *uint
+		if groupIDStr != "" {
+			var gid uint
+			if err := models.DB.Raw("SELECT ? AS group_id", groupIDStr).Scan(&gid).Error; err == nil {
+				groupID = &gid
+			}
+		}
+
 		record = models.Record{
-			Type:      recordType,
-			Title:     title,
-			Content:   content,
-			MediaPath: mediaPath,
-			Tags:      tags,
+			Type:       recordType,
+			Title:      title,
+			Content:    content,
+			MediaPath:  mediaPath,
+			Tags:       tags,
+			Visibility: models.Visibility(visibility),
+			GroupID:    groupID,
+		}
+		// 默认为公开
+		if record.Visibility == "" {
+			record.Visibility = models.VisibilityPublic
 		}
 		if err := models.DB.Create(&record).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

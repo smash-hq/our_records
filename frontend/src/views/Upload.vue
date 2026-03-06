@@ -28,9 +28,58 @@
 <div class="upload-tip">支持 jpg/png/gif/webp 格式，单张不超过 5MB，最多 9 张</div>
 </el-form-item>
 <el-form-item>
-<el-input v-model="form.tags" placeholder="添加标签，用逗号分隔，如：日常，美食，旅行" class="tags-input">
+<el-input v-model="form.tags" placeholder="添加标签，用逗号分隔，如：日常，美食，旅行" class="tags-input" @focus="showHistory=true" ref="tagsInputRef">
 <template #prefix><el-icon class="tag-icon"><PriceTag/></el-icon></template>
 </el-input>
+<div class="tags-history" v-if="showHistory && historyTags.length>0" ref="historyRef">
+<div class="history-title">
+<el-icon><Clock/></el-icon>
+<span>历史标签</span>
+<el-icon class="close-history" @click.stop="showHistory=false"><Close/></el-icon>
+</div>
+<div class="history-tags">
+<el-tag v-for="tag in historyTags" :key="tag"
+  class="history-tag"
+  size="default"
+  @click="selectHistoryTag(tag)">
+{{tag}}
+</el-tag>
+</div>
+</div>
+</el-form-item>
+<el-form-item label="可见性范围" class="visibility-form-item">
+<div class="visibility-options">
+<div class="visibility-option" :class="{active:form.visibility==='public'}" @click="form.visibility='public';form.group_id=null">
+<div class="option-icon public-icon"><el-icon><View/></el-icon></div>
+<div class="option-content">
+<div class="option-title">公开</div>
+<div class="option-desc">所有人可见</div>
+</div>
+<div class="option-check" v-if="form.visibility==='public'"><el-icon><CircleCheckFilled/></el-icon></div>
+</div>
+<div class="visibility-option" :class="{active:form.visibility==='private'}" @click="form.visibility='private'">
+<div class="option-icon private-icon"><el-icon><Lock/></el-icon></div>
+<div class="option-content">
+<div class="option-title">仅组内可见</div>
+<div class="option-desc">只有群组成员可见</div>
+</div>
+<div class="option-check" v-if="form.visibility==='private'"><el-icon><CircleCheckFilled/></el-icon></div>
+</div>
+</div>
+</el-form-item>
+<el-form-item label="选择可见群组" class="group-form-item" v-if="form.visibility==='private'">
+<el-select v-model="form.group_id" placeholder="请选择群组" class="group-select" clearable>
+<el-option v-for="g in myGroups" :key="g.id" :label="g.name" :value="g.id">
+<div class="group-option">
+<span>{{g.name}}</span>
+<span class="group-members">{{g.member_count}}人</span>
+</div>
+</el-option>
+</el-select>
+<div class="group-tip" v-if="myGroups.length===0">
+<el-icon><InfoFilled/></el-icon>
+<span>你还没有加入任何群组，<router-link to="/groups">去创建群组</router-link></span>
+</div>
 </el-form-item>
 <el-form-item class="submit-form-item">
 <div class="button-group">
@@ -48,16 +97,85 @@
 </template>
 
 <script setup>
-import {ref} from "vue"
-import {Edit,Plus,UploadFilled,PriceTag} from "@element-plus/icons-vue"
+import {ref,onMounted,onUnmounted} from "vue"
+import {Edit,Plus,UploadFilled,PriceTag,View,Lock,CircleCheckFilled,InfoFilled,Clock,Close} from "@element-plus/icons-vue"
 import {createRecord,uploadFile} from "../api/record"
+import {getGroups} from "@/api/group"
 import {ElMessage} from "element-plus"
 import {useRouter} from "vue-router"
 
 const router=useRouter()
-const form=ref({title:"",content:"",tags:""})
+const form=ref({title:"",content:"",tags:"",visibility:"public",group_id:null})
 const imageList=ref([])
 const submitting=ref(false)
+const myGroups=ref([])
+const historyTags=ref([])
+const showHistory=ref(false)
+const tagsInputRef=ref(null)
+const historyRef=ref(null)
+
+// 最大历史标签数量
+const MAX_HISTORY_TAGS=20
+
+// 加载历史标签
+const loadHistoryTags=()=>{
+  const saved=localStorage.getItem("tagsHistory")
+  if(saved){
+    try{
+      historyTags.value=JSON.parse(saved)
+    }catch(e){
+      historyTags.value=[]
+    }
+  }
+}
+
+// 保存历史标签
+const saveHistoryTags=()=>{
+  localStorage.setItem("tagsHistory",JSON.stringify(historyTags.value))
+}
+
+// 添加标签到历史
+const addTagsToHistory=(tagsStr)=>{
+  if(!tagsStr.trim())return
+  const newTags=tagsStr.split(",").map(t=>t.trim()).filter(t=>t)
+  const updated=[...newTags,...historyTags.value]
+  // 去重并保留最新的 MAX_HISTORY_TAGS 个
+  const unique=[...new Set(updated)].slice(0,MAX_HISTORY_TAGS)
+  historyTags.value=unique
+  saveHistoryTags()
+}
+
+// 选择历史标签
+const selectHistoryTag=(selectedTag)=>{
+  const currentTags=form.value.tags.split(",").map(t=>t.trim()).filter(t=>t)
+  if(!currentTags.includes(selectedTag)){
+    currentTags.push(selectedTag)
+    form.value.tags=currentTags.join(",")
+  }
+  // 保持焦点在输入框
+  setTimeout(()=>{
+    tagsInputRef.value?.focus()
+  },100)
+}
+
+// 点击外部关闭历史标签
+const handleClickOutside=(e)=>{
+  if(historyRef.value && !historyRef.value.contains(e.target) && tagsInputRef.value?.$el && !tagsInputRef.value.$el.contains(e.target)){
+    showHistory.value=false
+  }
+}
+
+onMounted(async ()=>{
+  try{
+    myGroups.value=await getGroups()
+    loadHistoryTags()
+    document.addEventListener("click",handleClickOutside)
+  }catch(e){console.error(e)}
+})
+
+onUnmounted(()=>{
+  document.removeEventListener("click",handleClickOutside)
+})
 
 const handleImageChange=(file)=>{
   const validTypes=["image/jpeg","image/png","image/gif","image/webp"]
@@ -70,7 +188,16 @@ const submit=async()=>{
   if(!form.value.title.trim()){ElMessage.warning("请输入标题");return}
   if(!form.value.content.trim()&&imageList.value.length===0){ElMessage.warning("请输入内容或上传图片");return}
   submitting.value=true
+  const tagsToSave=form.value.tags  // 保存当前标签
   try{
+    const recordData={
+      type:"text",
+      title:form.value.title,
+      content:form.value.content,
+      tags:form.value.tags,
+      visibility:form.value.visibility,
+      group_id:form.value.group_id||null
+    }
     if(imageList.value.length>0){
       for(const img of imageList.value){
         const formData=new FormData()
@@ -79,16 +206,22 @@ const submit=async()=>{
         formData.append("content",form.value.content)
         formData.append("tags",form.value.tags)
         formData.append("type","image")
+        formData.append("visibility",form.value.visibility)
+        if(form.value.group_id)formData.append("group_id",form.value.group_id)
         await uploadFile(formData)
       }
       ElMessage.success("发布成功")
     }else{
-      await createRecord({type:"text",title:form.value.title,content:form.value.content,tags:form.value.tags})
+      await createRecord(recordData)
       ElMessage.success("发布成功")
     }
-    form.value={title:"",content:"",tags:""}
+    form.value={title:"",content:"",tags:"",visibility:"public",group_id:null}
     imageList.value=[]
-    setTimeout(()=>router.push("/"),500)
+    // 保存标签到历史
+    if(tagsToSave){
+      addTagsToHistory(tagsToSave)
+    }
+    setTimeout(()=>router.push("/timeline"),500)
   }catch(e){console.error(e)}
   finally{submitting.value=false}
 }
@@ -124,6 +257,38 @@ const reset=()=>{form.value={title:"",content:"",tags:""};imageList.value=[];ElM
 .upload-icon{font-size:32px;color:#667eea;margin-bottom:8px}
 .upload-tip{font-size:12px;color:#999;text-align:center;margin-top:8px}
 .tag-icon{color:#667eea}
+.tags-input{position:relative}
+.tags-history{position:absolute;top:100%;left:0;right:0;margin-top:8px;background:#fff;border:1px solid #e4e7ed;border-radius:12px;box-shadow:0 4px 20px rgba(0,0,0,0.1);z-index:100;max-height:200px;overflow-y:auto}
+.tags-history::-webkit-scrollbar{width:6px}
+.tags-history::-webkit-scrollbar-thumb{background:#c1c4c9;border-radius:3px}
+.history-title{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-bottom:1px solid #f0f0f0;font-size:13px;color:#606266;font-weight:600}
+.history-title .el-icon{margin-right:6px;font-size:14px;color:#667eea}
+.close-history{cursor:pointer;font-size:14px;color:#909399;transition:color 0.2s}
+.close-history:hover{color:#667eea}
+.history-tags{display:flex;flex-wrap:wrap;gap:8px;padding:12px}
+.history-tag{cursor:pointer;padding:6px 12px;border-radius:6px;font-size:13px;background:#f5f7fa;border:1px solid #e4e7ed;color:#606266;transition:all 0.2s}
+.history-tag:hover{background:#667eea;border-color:#667eea;color:#fff;transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,0.3)}
+.visibility-form-item{margin:20px 0}
+.visibility-options{display:flex;gap:12px;width:100%}
+.visibility-option{flex:1;display:flex;align-items:center;gap:10px;padding:12px 14px;border:2px solid #e4e7ed;border-radius:10px;cursor:pointer;transition:all 0.3s;background:#fff}
+.visibility-option:hover{border-color:#667eea;background:#f8f9ff;transform:translateY(-1px);box-shadow:0 2px 8px rgba(102,126,234,0.1)}
+.visibility-option.active{border-color:#667eea;background:linear-gradient(135deg,rgba(102,126,234,0.05),rgba(118,75,162,0.05));box-shadow:0 2px 10px rgba(102,126,234,0.15)}
+.option-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.public-icon{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff}
+.private-icon{background:linear-gradient(135deg,#f093fb,#f5576c);color:#fff}
+.option-content{flex:1;min-width:0}
+.option-title{font-size:14px;color:#303133;font-weight:600;margin-bottom:2px}
+.option-desc{font-size:11px;color:#909399}
+.option-check{width:20px;height:20px;color:#667eea;font-size:20px;flex-shrink:0}
+.group-form-item{margin:20px 0}
+.group-select{width:100%}
+.group-select :deep(.el-input__wrapper){border-radius:12px;box-shadow:0 2px 12px rgba(0,0,0,0.05)}
+.group-option{display:flex;justify-content:space-between;align-items:center}
+.group-members{font-size:12px;color:#909399}
+.group-tip{display:flex;align-items:center;gap:8px;padding:12px;background:#f8f9ff;border-radius:8px;font-size:13px;color:#667eea}
+.group-tip .el-icon{font-size:16px}
+.group-tip a{color:#667eea;text-decoration:none;font-weight:500}
+.group-tip a:hover{text-decoration:underline}
 .submit-form-item{margin-top:32px}
 .button-group{display:flex;justify-content:flex-end;gap:12px}
 .reset-btn,.submit-btn{width:100px;height:40px;padding:0;border-radius:10px;font-size:14px;font-weight:500}
@@ -145,5 +310,6 @@ const reset=()=>{form.value={title:"",content:"",tags:""};imageList.value=[];ElM
 .submit-form-item{text-align:center}
 .button-group{display:flex;flex-direction:column;gap:12px;justify-content:center;align-items:center;width:100%}
 .reset-btn,.submit-btn{width:280px;height:44px;margin:0 auto}
+.visibility-options{flex-direction:column}
 }
 </style>

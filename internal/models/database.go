@@ -24,7 +24,7 @@ func InitDB(host, port, user, password, dbname, sslmode string) error {
 	}
 
 	// 自动迁移模型
-	err = DB.AutoMigrate(&Record{})
+	err = DB.AutoMigrate(&Record{}, &User{}, &Group{}, &UserGroup{})
 	if err != nil {
 		return fmt.Errorf("数据库迁移失败：%w", err)
 	}

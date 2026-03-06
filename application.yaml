@@ -1,6 +1,7 @@
 server:
   port: "8088"
   mode: "debug"
+  jwt_secret: "our_records_jwt_secret_key_change_in_production"
 
 database:
   host: "pgsql-server"

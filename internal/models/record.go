@@ -17,17 +17,30 @@ const (
 	RecordTypeVideo RecordType = "video"
 )
 
+// Visibility 可见性类型
+type Visibility string
+
+const (
+	VisibilityPublic  Visibility = "public"  // 公开
+	VisibilityPrivate Visibility = "private" // 仅组内可见
+)
+
 // Record 记录模型
 type Record struct {
-	ID        uint           `gorm:"primaryKey" json:"id"`
-	Type      RecordType     `gorm:"type:varchar(20);not null" json:"type"`
-	Title     string         `gorm:"type:varchar(255)" json:"title"`
-	Content   string         `gorm:"type:text" json:"content"`
-	MediaPath string         `gorm:"type:text" json:"media_paths,omitempty"`
-	Tags      string         `gorm:"type:varchar(500)" json:"tags"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
+	ID         uint           `gorm:"primaryKey" json:"id"`
+	Type       RecordType     `gorm:"type:varchar(20);not null" json:"type"`
+	Visibility Visibility     `gorm:"type:varchar(20);default:'public'" json:"visibility"`
+	GroupID    *uint          `gorm:"index" json:"group_id"`
+	Group      *Group         `gorm:"foreignKey:GroupID" json:"group,omitempty"`
+	UserID     *uint          `gorm:"index" json:"user_id"`
+	User       *User          `gorm:"foreignKey:UserID" json:"user,omitempty"`
+	Title      string         `gorm:"type:varchar(255)" json:"title"`
+	Content    string         `gorm:"type:text" json:"content"`
+	MediaPath  string         `gorm:"type:text" json:"media_paths,omitempty"`
+	Tags       string         `gorm:"type:varchar(500)" json:"tags"`
+	DeletedAt  gorm.DeletedAt `gorm:"index" json:"-"`
+	CreatedAt  time.Time      `json:"created_at"`
+	UpdatedAt  time.Time      `json:"updated_at"`
 }
 
 // GetMediaPaths 获取媒体路径列表

@@ -4,6 +4,7 @@ import (
 	"log"
 
 	"our_records/internal/config"
+	"our_records/internal/middleware"
 	"our_records/internal/models"
 	"our_records/internal/routes"
 	"our_records/pkg/minio"
@@ -14,6 +15,9 @@ func main() {
 	if err := config.Init("application.yaml"); err != nil {
 		log.Fatalf("配置加载失败：%v", err)
 	}
+
+	// 初始化 JWT
+	middleware.InitJWT()
 
 	// 初始化数据库
 	db := config.AppConfig.Database

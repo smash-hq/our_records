@@ -10,7 +10,9 @@
 - ✅ 移动端响应式适配
 - ✅ 图片预览
 - ✅ 标签分类
-- ✅ 登录验证
+- ✅ 用户注册/登录（JWT 认证）
+- ✅ 密码修改
+- ✅ 个人中心
 
 ## 🛠️ 技术栈
 
@@ -58,6 +60,8 @@ our_records/
 ```yaml
 server:
   port: "8088"
+  mode: "debug"
+  jwt_secret: "your-secret-key-change-in-production"  # 生产环境请修改
 
 database:
   host: "localhost"
@@ -75,16 +79,60 @@ minio:
   use_ssl: false
 ```
 
-**注意：** 请根据实际环境修改配置。
+**注意：** 请根据实际环境修改配置，**生产环境务必修改 `jwt_secret`**。
 
-### 2. 安装前端依赖
+### 2. API 接口说明
+
+#### 认证相关
+
+| 方法 | 路径 | 说明 | 需要认证 |
+|------|------|------|----------|
+| POST | `/api/auth/register` | 用户注册 | ❌ |
+| POST | `/api/auth/login` | 用户登录 | ❌ |
+| GET | `/api/user` | 获取当前用户信息 | ✅ |
+| PUT | `/api/user/password` | 修改密码 | ✅ |
+
+#### 记录相关
+
+| 方法 | 路径 | 说明 | 需要认证 |
+|------|------|------|----------|
+| POST | `/api/records` | 创建记录 | ✅ |
+| GET | `/api/records` | 获取记录列表 | ✅ |
+| GET | `/api/records/:id` | 获取单条记录 | ✅ |
+| PUT | `/api/records/:id` | 更新记录 | ✅ |
+| DELETE | `/api/records/:id` | 删除记录 | ✅ |
+| POST | `/api/upload` | 文件上传 | ✅ |
+
+#### 请求示例
+
+**注册：**
+```bash
+curl -X POST http://localhost:8088/api/auth/register \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"123456","email":"admin@example.com"}'
+```
+
+**登录：**
+```bash
+curl -X POST http://localhost:8088/api/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username":"admin","password":"123456"}'
+```
+
+**访问受保护接口（携带 Token）：**
+```bash
+curl -X GET http://localhost:8088/api/user \
+  -H "Authorization: Bearer YOUR_JWT_TOKEN"
+```
+
+### 3. 安装前端依赖
 
 ```bash
 cd frontend
 npm install
 ```
 
-### 3. 启动服务
+### 4. 启动服务
 
 **启动后端：**
 ```bash
@@ -102,7 +150,7 @@ npm run dev
 
 ## 📦 打包部署
 
-### Windows 构建脚本
+### 5. Windows 构建脚本
 
 ```cmd
 # 查看所有命令
@@ -118,7 +166,7 @@ build.bat build
 build.bat clean
 ```
 
-### 部署到服务器
+### 6. 部署到服务器
 
 1. 上传 `build/linux/` 目录到服务器
 2. 执行部署脚本：
