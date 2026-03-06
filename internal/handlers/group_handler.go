@@ -366,7 +366,10 @@ func GetGroupMembers(c *gin.Context) {
 		Joins("JOIN users ON users.id = user_groups.user_id").
 		Where("user_groups.group_id = ?", gid).
 		Scan(&members)
-
+	// 对头像进行签名
+	for i := range members {
+		members[i].Avatar, _ = minioClient.GetPresignedURL(context.Background(), members[i].Avatar, 7*24*time.Hour)
+	}
 	c.JSON(http.StatusOK, gin.H{"members": members})
 }
 

@@ -147,12 +147,14 @@
 </template>
 
 <script setup>
-import {ref, onMounted, onUnmounted} from "vue"
+import {ref, onMounted, onUnmounted, watch} from "vue"
+import {useRoute} from "vue-router"
 import {Document, Plus, Picture, View, Delete, Search, VideoCamera, ChatDotRound} from "@element-plus/icons-vue"
 import {getRecords, deleteRecord} from "../api/record"
 import {ElMessage, ElMessageBox} from "element-plus"
 import CommentsView from "@/components/Comments.vue"
 
+const route = useRoute()
 const records = ref([]), loading = ref(false), queryForm = ref({type: "", tags: ""})
 const dialogVisible = ref(false), currentRecord = ref(null), dialogWidth = ref("700px")
 
@@ -163,8 +165,26 @@ updateDialogWidth()
 onMounted(() => {
   window.addEventListener("resize", updateDialogWidth);
   loadRecords()
+  // 检查是否有 view 参数，有则打开对应记录详情
+  checkViewParam()
 })
 onUnmounted(() => window.removeEventListener("resize", updateDialogWidth))
+
+// 监听路由参数变化
+watch(() => route.query, () => {
+  checkViewParam()
+})
+
+// 检查并处理 view 参数
+const checkViewParam = () => {
+  const viewId = route.query.view
+  if (viewId) {
+    const record = records.value.find(r => r.id == viewId)
+    if (record) {
+      viewRecord(record)
+    }
+  }
+}
 
 const loadRecords = async () => {
   loading.value = true;
@@ -346,6 +366,10 @@ const confirmDelete = async (id) => {
   position: relative
 }
 
+.record-item :deep(.el-card__body) {
+  margin-bottom: -10px
+}
+
 .record-item:hover {
   transform: translateY(-6px);
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12)
@@ -428,6 +452,7 @@ const confirmDelete = async (id) => {
 
 .record-body {
   padding: 14px;
+  padding-bottom: 5px;
   flex: 1;
   display: flex;
   flex-direction: column
@@ -489,6 +514,8 @@ const confirmDelete = async (id) => {
   gap: 6px;
   flex: 1;
   min-height: 20px;
+  padding-top: 20px;
+  padding-bottom: 0
 }
 
 .tag-item {
@@ -508,7 +535,7 @@ const confirmDelete = async (id) => {
   font-size: 12px;
   color: #909399;
   cursor: pointer;
-  padding: 4px 8px;
+  padding: 20px 8px 0 8px;
   border-radius: 4px;
   transition: all 0.2s;
   flex-shrink: 0
@@ -525,13 +552,13 @@ const confirmDelete = async (id) => {
 
 .record-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
   gap: 8px;
-  padding-top: 12px;
+  padding-top: 5px;
   align-items: center;
   border-top: 1px solid #f5f5f5;
   height: 44px;
-  flex-shrink: 0
+  flex-shrink: 0;
 }
 
 .btn-view {

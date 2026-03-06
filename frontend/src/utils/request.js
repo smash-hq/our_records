@@ -35,10 +35,16 @@ request.interceptors.response.use(
   response => response.data,
   error => {
     if (error.response?.status === 401) {
-      handleLogout()
-      return Promise.reject(new Error("未登录或登录已过期"))
+      // 只在非通知接口返回 401 时登出
+      if (!error.config?.url?.includes('/notifications')) {
+        handleLogout()
+        return Promise.reject(new Error("未登录或登录已过期"))
+      }
     }
-    ElMessage.error(error.response?.data?.error || "请求失败")
+    // 通知接口 401 时不显示错误提示
+    if (!error.config?.url?.includes('/notifications')) {
+      ElMessage.error(error.response?.data?.error || "请求失败")
+    }
     return Promise.reject(error)
   }
 )

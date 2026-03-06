@@ -8,13 +8,14 @@
 <p class="login-subtitle">{{ isRegister ? '创建新账号' : '记录生活中的每一个美好瞬间' }}</p>
 </div>
 
-<el-form :model="form" :rules="rules" ref="formRef" class="login-form" @submit.prevent="handleSubmit">
+<el-form :model="form" :rules="rules" ref="formRef" class="login-form" @keyup.enter="handleSubmit">
 <el-form-item prop="username">
 <el-input
 v-model="form.username"
 placeholder="用户名"
 size="large"
 maxlength="50"
+@keyup.enter="focusPassword"
 >
 <template #prefix>
 <el-icon><User/></el-icon>
@@ -30,6 +31,8 @@ placeholder="密码（至少 6 位）"
 size="large"
 maxlength="50"
 show-password
+@keyup.enter="focusEmailOrSubmit"
+ref="passwordInput"
 >
 <template #prefix>
 <el-icon><Lock/></el-icon>
@@ -45,6 +48,8 @@ placeholder="密码"
 size="large"
 maxlength="50"
 show-password
+@keyup.enter="handleSubmit"
+ref="passwordInput"
 >
 <template #prefix>
 <el-icon><Lock/></el-icon>
@@ -58,6 +63,8 @@ v-model="form.email"
 placeholder="邮箱（选填）"
 size="large"
 maxlength="100"
+@keyup.enter="handleSubmit"
+ref="emailInput"
 >
 <template #prefix>
 <el-icon><Message/></el-icon>
@@ -94,7 +101,7 @@ class="login-btn"
 </template>
 
 <script setup>
-import { ref, reactive, computed } from "vue"
+import { ref, reactive, computed, nextTick } from "vue"
 import { User, Lock, Message } from "@element-plus/icons-vue"
 import { useRouter } from "vue-router"
 import { ElMessage } from "element-plus"
@@ -102,6 +109,8 @@ import { login, register } from "@/api/auth"
 
 const router = useRouter()
 const formRef = ref(null)
+const passwordInput = ref(null)
+const emailInput = ref(null)
 const isRegister = ref(false)
 const loading = ref(false)
 
@@ -110,6 +119,26 @@ const form = reactive({
   password: "",
   email: ""
 })
+
+// 聚焦到密码框
+const focusPassword = () => {
+  nextTick(() => {
+    if (passwordInput.value) {
+      passwordInput.value.focus()
+    }
+  })
+}
+
+// 注册时：聚焦到邮箱框或提交
+const focusEmailOrSubmit = () => {
+  if (isRegister.value) {
+    nextTick(() => {
+      if (emailInput.value) {
+        emailInput.value.focus()
+      }
+    })
+  }
+}
 
 const rules = computed(() => {
   const baseRules = {

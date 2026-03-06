@@ -112,9 +112,26 @@ npm run dev
 
 访问 http://localhost:3000
 
-## 📦 打包部署（Linux）
+## 📦 打包部署
 
-### 方式一：使用 Makefile（推荐）
+### 方式一：Windows 一键打包（推荐）
+
+在 Windows 环境下，使用 PowerShell 脚本一键打包：
+
+```powershell
+# 执行打包脚本
+.\build.ps1
+```
+
+脚本会自动完成以下操作：
+1. 构建前端到 `frontend/dist/`
+2. 交叉编译后端为 Linux amd64 可执行文件
+3. 复制配置文件 `application.yaml`
+4. 生成启动脚本 `start.sh` 和 `stop.sh`
+
+打包完成后，文件位于 `build/windows/` 目录。
+
+### 方式二：使用 Makefile（Linux/macOS）
 
 ```bash
 # 查看帮助
@@ -136,7 +153,7 @@ make package
 make clean
 ```
 
-### 方式二：手动构建
+### 方式三：手动构建
 
 #### 1. 构建前端
 
@@ -147,18 +164,17 @@ npm run build
 
 构建完成后，静态文件将输出到 `frontend/dist/` 目录。
 
-#### 2. 交叉编译后端（Windows 环境下）
+#### 2. 交叉编译后端
 
-```bash
-# PowerShell
+**Windows (PowerShell)：**
+```powershell
 $env:GOOS='linux'
 $env:GOARCH='amd64'
 $env:CGO_ENABLED='0'
 go build -o build/linux/our_records main.go
 ```
 
-#### 3. 在 Linux 环境下构建
-
+**Linux/macOS：**
 ```bash
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o build/linux/our_records main.go
 ```
@@ -167,11 +183,11 @@ GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o build/linux/our_records main.g
 
 #### 1. 上传文件
 
-将 `build/linux/` 目录下的所有文件上传到服务器：
+将打包目录（`build/windows/` 或 `build/linux/`）下的所有文件上传到服务器：
 
 ```bash
 # 假设上传到 /opt/our_records
-scp -r build/linux/* root@your_server:/opt/our_records/
+scp -r build/windows/* root@your_server:/opt/our_records/
 ```
 
 目录结构：
@@ -179,27 +195,64 @@ scp -r build/linux/* root@your_server:/opt/our_records/
 /opt/our_records/
 ├── our_records        # 后端可执行文件
 ├── application.yaml   # 配置文件
-└── dist/              # 前端静态文件
-    ├── index.html
-    ├── assets/
-    └── ...
+├── dist/              # 前端静态文件
+│   ├── index.html
+│   ├── assets/
+│   └── ...
+├── start.sh           # 启动脚本
+└── stop.sh            # 停止脚本
 ```
 
 #### 2. 配置文件权限
 
 ```bash
-chmod 644 /opt/our_records/application.yaml
+# 设置执行权限
+chmod +x /opt/our_records/start.sh
+chmod +x /opt/our_records/stop.sh
 chmod +x /opt/our_records/our_records
+
+# 设置配置文件权限
+chmod 644 /opt/our_records/application.yaml
 ```
 
 #### 3. 启动服务
 
+使用启动脚本：
+```bash
+cd /opt/our_records
+./start.sh
+```
+
+或手动启动：
 ```bash
 cd /opt/our_records
 ./our_records
 ```
 
-#### 4. 配置 Nginx 反向代理（可选）
+#### 4. 停止服务
+
+使用停止脚本：
+```bash
+./stop.sh
+```
+
+或手动停止：
+```bash
+# 查找进程
+ps aux | grep our_records
+
+# 杀死进程
+kill <PID>
+```
+
+#### 5. 查看日志
+
+```bash
+# 查看运行日志
+tail -f our_records.log
+```
+
+#### 6. 配置 Nginx 反向代理（可选）
 
 创建 Nginx 配置文件 `/etc/nginx/sites-available/our-records`：
 

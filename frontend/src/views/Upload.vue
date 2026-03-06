@@ -7,11 +7,11 @@
     </div>
     <div class="upload-container">
       <div class="upload-header">
-        <div class="header-icon">
-          <el-icon class="icon-pen">
-            <Edit/>
-          </el-icon>
-        </div>
+<!--        <div class="header-icon">-->
+<!--          <el-icon class="icon-pen">-->
+<!--            <Edit/>-->
+<!--          </el-icon>-->
+<!--        </div>-->
         <h1>记录日常</h1>
         <p>分享你的生活点滴，记录每一个美好瞬间</p>
       </div>
@@ -152,6 +152,7 @@ import {
 } from "@element-plus/icons-vue"
 import {createRecord, uploadFile} from "../api/record"
 import {getGroups} from "@/api/group"
+import {getMyTags} from "@/api/tag"
 import {ElMessage} from "element-plus"
 import {useRouter} from "vue-router"
 
@@ -169,31 +170,22 @@ const historyRef = ref(null)
 const MAX_HISTORY_TAGS = 20
 
 // 加载历史标签
-const loadHistoryTags = () => {
-  const saved = localStorage.getItem("tagsHistory")
-  if (saved) {
-    try {
-      historyTags.value = JSON.parse(saved)
-    } catch (e) {
-      historyTags.value = []
-    }
+const loadHistoryTags = async () => {
+  try {
+    const res = await getMyTags()
+    historyTags.value = res.tags || []
+  } catch (error) {
+    console.error("加载标签失败", error)
+    historyTags.value = []
   }
 }
 
-// 保存历史标签
-const saveHistoryTags = () => {
-  localStorage.setItem("tagsHistory", JSON.stringify(historyTags.value))
-}
+// 保存历史标签（不再需要，从后端加载）
+const saveHistoryTags = () => {}
 
 // 添加标签到历史
 const addTagsToHistory = (tagsStr) => {
-  if (!tagsStr.trim()) return
-  const newTags = tagsStr.split(",").map(t => t.trim()).filter(t => t)
-  const updated = [...newTags, ...historyTags.value]
-  // 去重并保留最新的 MAX_HISTORY_TAGS 个
-  const unique = [...new Set(updated)].slice(0, MAX_HISTORY_TAGS)
-  historyTags.value = unique
-  saveHistoryTags()
+  // 标签会自动保存到记录中，下次从后端加载
 }
 
 // 选择历史标签
@@ -442,7 +434,7 @@ const reset = () => {
 }
 
 .image-form-item {
-  margin: 24px 0
+  margin: 0 0
 }
 
 .image-uploader {
@@ -450,8 +442,8 @@ const reset = () => {
 }
 
 .image-uploader :deep(.el-upload--picture-card) {
-  width: 100px;
-  height: 100px;
+  width: 64px;
+  height: 64px;
   border-radius: 12px;
   border: 2px dashed #667eea;
   background: #f8f9ff;
@@ -477,14 +469,13 @@ const reset = () => {
 .upload-icon {
   font-size: 32px;
   color: #667eea;
-  margin-bottom: 8px
 }
 
 .upload-tip {
   font-size: 12px;
   color: #999;
   text-align: center;
-  margin-top: 8px
+  margin-bottom: 8px
 }
 
 .tag-icon {
@@ -574,7 +565,7 @@ const reset = () => {
 }
 
 .visibility-form-item {
-  margin: 20px 0
+  margin: 0 0;
 }
 
 .visibility-options {

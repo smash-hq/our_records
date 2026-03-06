@@ -250,6 +250,10 @@ const confirmDelete = async (record) => {
   position: relative
 }
 
+.record-card :deep(.el-card__body) {
+  padding-bottom: 0
+}
+
 .record-card:hover {
   transform: translateX(4px);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08)
@@ -563,6 +567,10 @@ const confirmDelete = async (record) => {
 
   .record-card {
     margin-left: 8px
+  }
+
+  .record-card :deep(.el-card__body) {
+    padding-bottom: 0
   }
 
   .thumbnail-grid {

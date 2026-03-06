@@ -71,6 +71,15 @@ func SetupRouter() *gin.Engine {
 
 		// 文件上传路由
 		auth.POST("/upload", handlers.UploadFile)
+
+		// 通知相关路由
+		auth.GET("/notifications/unread", handlers.GetUnreadNotifications)
+		auth.GET("/notifications", handlers.GetNotifications)
+		auth.PUT("/notifications/:id/read", handlers.MarkNotificationAsRead)
+		auth.POST("/notifications/read-all", handlers.MarkAllNotificationsAsRead)
+
+		// 标签相关路由
+		auth.GET("/tags/my", handlers.GetMyTags)
 	}
 
 	return r

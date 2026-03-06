@@ -95,6 +95,39 @@ func CreateComment(c *gin.Context) {
 		return
 	}
 
+	// 发送通知
+	recordOwnerID := record.UserID
+	if recordOwnerID != nil && *recordOwnerID != userID {
+		// 评论的是别人的记录，发送通知
+		notification := models.Notification{
+			UserID:     *recordOwnerID,
+			FromUserID: userID,
+			Type:       models.NotificationTypeComment,
+			RecordID:   rid,
+			CommentID:  &comment.ID,
+			Content:    req.Content,
+		}
+		models.DB.Create(&notification)
+	}
+
+	// 如果是回复评论，给被回复者发送通知
+	if req.ParentID != nil {
+		var parentComment models.Comment
+		if err := models.DB.First(&parentComment, *req.ParentID).Error; err == nil {
+			if parentComment.UserID != userID {
+				notification := models.Notification{
+					UserID:     parentComment.UserID,
+					FromUserID: userID,
+					Type:       models.NotificationTypeReply,
+					RecordID:   rid,
+					CommentID:  &comment.ID,
+					Content:    req.Content,
+				}
+				models.DB.Create(&notification)
+			}
+		}
+	}
+
 	// 查询评论详情
 	var result models.Comment
 	models.DB.Preload("User").First(&result, comment.ID)
